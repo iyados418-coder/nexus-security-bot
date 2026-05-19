@@ -1,0 +1,33 @@
+module.exports = {
+  apps: [
+    {
+      name: 'nexus-api',
+      script: 'server.js',
+      cwd: './api',
+      env: { API_PORT: 3001 },
+      watch: false,
+      max_restarts: 10,
+      restart_delay: 3000,
+      exp_backoff_restart_delay: 100,
+      kill_timeout: 5000,
+      error_file: './logs/api-error.log',
+      out_file: './logs/api-out.log',
+      merge_logs: true,
+    },
+    {
+      name: 'nexus-dashboard',
+      script: 'npx',
+      args: 'next start -p 3000',
+      cwd: './dashboard',
+      env: { NEXT_PUBLIC_API_URL: 'http://localhost:3001' },
+      watch: false,
+      max_restarts: 10,
+      restart_delay: 3000,
+      exp_backoff_restart_delay: 100,
+      kill_timeout: 10000,
+      error_file: './logs/dash-error.log',
+      out_file: './logs/dash-out.log',
+      merge_logs: true,
+    },
+  ],
+};

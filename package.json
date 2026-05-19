@@ -1,0 +1,27 @@
+{
+  "name": "security-bot-dashboard",
+  "version": "2.0.0",
+  "description": "Nexus Security Bot — Advanced Discord Protection",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently -k \"node index.js\" \"node scripts/start-dashboard.js\"",
+    "stop": "taskkill /f /im node.exe >nul 2>&1 || echo No node processes found",
+    "restart": "npm run stop && timeout /t 2 /nobreak >nul && npm start",
+    "bot": "node bot/index.js",
+    "api": "node api/server.js",
+    "dashboard": "node scripts/start-dashboard.js",
+    "dev": "concurrently -k \"node index.js\" \"node scripts/start-dashboard.js\""
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "axios": "^1.6.2",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5",
+    "cookie-parser": "^1.4.6",
+    "express-session": "^1.17.3",
+    "concurrently": "^8.2.2"
+  }
+}
