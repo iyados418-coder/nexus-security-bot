@@ -40,10 +40,11 @@ function getIO() {
 }
 
 function emitLog(guildId, type, data) {
-  if (!io) return;
-  const entry = { type, data, timestamp: Date.now() };
-  io.to(`guild:${guildId}`).emit('log', entry);
+  // Always save to disk regardless of WebSocket state
   logSaver.saveLog(guildId, type, data);
+  if (!io) return;
+  const entry = { type, data, timestamp: new Date().toISOString() };
+  io.to(`guild:${guildId}`).emit('log', entry);
 }
 
 function emitStats(guildId, data) {

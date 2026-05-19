@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { authFetch } from '../utils/auth';
 
@@ -285,65 +285,73 @@ function HistoryTab({ guildId }) {
   const [error, setError] = useState('');
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
-  const [offset, setOffset] = useState(0);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [availableDates, setAvailableDates] = useState([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const mountedRef = useRef(true);
+  const offsetRef = useRef(0);
 
-  const fetchHistory = async (reset = false) => {
+  const fetchHistory = useCallback(async (reset = false) => {
     if (!guildId) return;
+    if (!mountedRef.current) return;
     setLoading(true); setError('');
-    const newOffset = reset ? 0 : offset;
-    if (reset) setOffset(0);
+
+    const currentOffset = reset ? 0 : offsetRef.current;
+    if (reset) offsetRef.current = 0;
 
     try {
-      const params = new URLSearchParams({ limit: '100', offset: newOffset.toString() });
+      const params = new URLSearchParams({ limit: '100', offset: currentOffset.toString() });
       if (filter !== 'all') params.set('type', filter);
       if (search) params.set('search', search);
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
 
       const r = await authFetch(`/api/logs/${guildId}?${params}`);
+      if (!mountedRef.current) return;
       if (r.ok) {
         const d = await r.json();
+        const newLogs = d.logs || [];
         if (reset) {
-          setLogs(d.logs || []);
+          setLogs(newLogs);
         } else {
-          setLogs(prev => [...prev, ...(d.logs || [])]);
+          setLogs(prev => [...prev, ...newLogs]);
         }
         setTotal(d.total || 0);
         setHasMore(d.hasMore || false);
-        setOffset(newOffset + (d.logs?.length || 0));
+        offsetRef.current = currentOffset + newLogs.length;
       } else {
         setError('Failed to load history');
       }
-    } catch { setError('Connection error'); }
-    setLoading(false);
-  };
+    } catch { if (mountedRef.current) setError('Connection error'); }
+    if (mountedRef.current) setLoading(false);
+  }, [guildId, filter, search, startDate, endDate]);
 
   useEffect(() => {
+    mountedRef.current = true;
     if (!guildId) return;
     fetchHistory(true);
     (async () => {
       try {
         const r = await authFetch(`/api/logs/${guildId}/dates`);
-        if (r.ok) { const d = await r.json(); setAvailableDates(d.dates || []); }
+        if (r.ok && mountedRef.current) { const d = await r.json(); setAvailableDates(d.dates || []); }
       } catch {}
     })();
-  }, [guildId]);
+    return () => { mountedRef.current = false; };
+  }, [guildId, fetchHistory]);
 
-  const doSearch = () => {
+  const doSearch = useCallback(() => {
     setSearch(searchInput);
-  };
+  }, [searchInput]);
 
   useEffect(() => {
+    if (!guildId) return;
     fetchHistory(true);
-  }, [filter, startDate, endDate, search]);
+  }, [filter, startDate, endDate, search, guildId, fetchHistory]);
 
-  const exportHistory = () => {
+  const exportHistory = useCallback(() => {
     if (logs.length === 0) return;
     const data = logs.map(l => ({
       time: formatTime(l.timestamp || l.time),
@@ -360,13 +368,12 @@ function HistoryTab({ guildId }) {
     const label = startDate || endDate ? `${startDate || ''}_${endDate || ''}` : 'all';
     a.href = url; a.download = `nexus-history-${label}-${Date.now()}.json`;
     a.click(); URL.revokeObjectURL(url);
-  };
+  }, [logs, startDate, endDate]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setStartDate(''); setEndDate(''); setFilter('all');
     setSearch(''); setSearchInput('');
-    fetchHistory(true);
-  };
+  }, []);
 
   const hasActiveFilters = filter !== 'all' || search || startDate || endDate;
 
@@ -469,7 +476,7 @@ function HistoryTab({ guildId }) {
                   ) : (
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="7 13 12 18 17 13"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
                   )}
-                  {loading ? 'Loading...' : `Load more (${total - offset} remaining)`}
+                  {loading ? 'Loading...' : `Load more (${Math.max(0, total - offsetRef.current)} remaining)`}
                 </button>
               </div>
             )}
