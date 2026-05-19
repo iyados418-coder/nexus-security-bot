@@ -170,11 +170,13 @@ function LiveTab({ guildId }) {
   }, [guildId]);
 
   useEffect(() => {
-    if (autoScroll && logs.length > prevLen.current) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    if (!autoScroll || logs.length <= prevLen.current) return;
+    const raf = requestAnimationFrame(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'instant' });
+    });
     prevLen.current = logs.length;
-  }, [logs, autoScroll]);
+    return () => cancelAnimationFrame(raf);
+  }, [logs.length, autoScroll]);
 
   const filtered = logs.filter(l => {
     if (filter !== 'all' && l.type !== filter) return false;

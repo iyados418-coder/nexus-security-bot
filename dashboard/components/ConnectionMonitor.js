@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { checkAPIStatus } from '../utils/auth';
 
 export default function ConnectionMonitor({ children }) {
@@ -6,25 +6,43 @@ export default function ConnectionMonitor({ children }) {
   const [retryCount, setRetryCount] = useState(0);
   const [showOverlay, setShowOverlay] = useState(false);
   const retryRef = useRef(0);
-  const stateRef = useRef('checking');
+  const intervalRef = useRef(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const checkConnection = useCallback(async () => {
+    if (!mountedRef.current) return;
     try {
       const status = await checkAPIStatus();
+      if (!mountedRef.current) return;
       if (status.online) {
         setState('online');
         setRetryCount(0);
         retryRef.current = 0;
         setShowOverlay(false);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = setInterval(checkConnection, 12000);
+        }
       } else {
         setState('offline');
-        retryRef.current += 1;
+        retryRef.current = Math.min(retryRef.current + 1, 6);
         setRetryCount(retryRef.current);
         if (retryRef.current > 1) setShowOverlay(true);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          const backoff = Math.min(4000 * Math.pow(1.5, retryRef.current - 1), 30000);
+          intervalRef.current = setInterval(checkConnection, backoff);
+        }
       }
     } catch {
+      if (!mountedRef.current) return;
       setState('offline');
-      retryRef.current += 1;
+      retryRef.current = Math.min(retryRef.current + 1, 6);
       setRetryCount(retryRef.current);
       if (retryRef.current > 1) setShowOverlay(true);
     }
@@ -32,8 +50,8 @@ export default function ConnectionMonitor({ children }) {
 
   useEffect(() => {
     checkConnection();
-    const iv = setInterval(checkConnection, 4000);
-    return () => clearInterval(iv);
+    intervalRef.current = setInterval(checkConnection, 12000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [checkConnection]);
 
   return (

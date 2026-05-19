@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { checkAPIStatus } from '../utils/auth';
@@ -6,6 +6,7 @@ import { checkAPIStatus } from '../utils/auth';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function Login() {
+  const mountedRef = useRef(true);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,9 +21,10 @@ export default function Login() {
   };
 
   useEffect(() => {
+    mountedRef.current = true;
     checkApi();
-    const iv = setInterval(checkApi, 10000);
-    return () => clearInterval(iv);
+    const iv = setInterval(() => { if (mountedRef.current) checkApi(); }, 10000);
+    return () => { mountedRef.current = false; clearInterval(iv); };
   }, []);
 
   useEffect(() => {

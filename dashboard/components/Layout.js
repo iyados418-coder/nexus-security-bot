@@ -66,12 +66,15 @@ export default function Layout({ children, guild }) {
   }, []);
 
   useEffect(() => {
+    let iv;
     const checkBot = async () => {
-      const status = await checkAPIStatus();
-      setBotStatus(status.online ? 'online' : 'offline');
+      if (document.visibilityState === 'visible') {
+        const status = await checkAPIStatus();
+        setBotStatus(status.online ? 'online' : 'offline');
+      }
     };
     checkBot();
-    const iv = setInterval(checkBot, 15000);
+    iv = setInterval(checkBot, 30000);
     return () => clearInterval(iv);
   }, []);
 

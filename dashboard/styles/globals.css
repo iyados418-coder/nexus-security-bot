@@ -227,7 +227,7 @@ body {
 .notification-error { border-left: 3px solid #ef4444; }
 .notification-info { border-left: 3px solid #3b82f6; }
 
-/* ── Professional Animations ── */
+/* ── Professional Animations (GPU-optimized) ── */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeInDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
@@ -236,21 +236,25 @@ body {
 @keyframes scaleIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes dropdownIn { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes skeletonPulse { 0% { opacity: 0.4; } 50% { opacity: 0.7; } 100% { opacity: 0.4; } }
 
-.animate-fadeIn { animation: fadeIn 0.15s ease; }
-.animate-fadeInUp { animation: fadeInUp 0.2s ease; }
-.animate-fadeInDown { animation: fadeInDown 0.15s ease; }
-.animate-dropdown { animation: dropdownIn 0.12s cubic-bezier(0.4, 0, 0.2, 1); }
-.animate-skeleton { animation: skeletonPulse 1.8s ease-in-out infinite; }
+.animate-fadeIn { animation: fadeIn 0.12s ease forwards; }
+.animate-fadeInUp { animation: fadeInUp 0.18s ease forwards; }
+.animate-fadeInDown { animation: fadeInDown 0.12s ease forwards; }
+.animate-dropdown { animation: dropdownIn 0.1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.animate-slideUp { animation: slideUp 0.18s ease forwards; }
+.animate-slideInRight { animation: slideInRight 0.12s ease forwards; }
+.animate-scaleIn { animation: scaleIn 0.1s ease forwards; }
+.animate-spin { animation: spin 0.5s linear infinite; }
 
-/* GPU acceleration for smooth animations */
-.gpu { transform: translateZ(0); will-change: transform; }
+/* Only apply GPU acceleration to elements that actively animate */
 .gpu-layer { transform: translateZ(0); will-change: transform, opacity; backface-visibility: hidden; }
-.animate-slideUp { animation: slideUp 0.2s ease; }
-.animate-slideInRight { animation: slideInRight 0.15s ease; }
-.animate-scaleIn { animation: scaleIn 0.12s ease; }
-.animate-spin { animation: spin 0.6s linear infinite; }
+.gpu { transform: translateZ(0); will-change: transform; }
+.animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+/* Skeleton uses CSS only (GPU-friendly) */
+.animate-skeleton { animation: skPulse 1.5s ease-in-out infinite; }
+@keyframes skPulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.65; } }
 
 .stagger-1 { animation-delay: 0.03s; }
 .stagger-2 { animation-delay: 0.06s; }
@@ -277,7 +281,7 @@ body {
   border-radius: 14px;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
   transform: translateZ(0);
-  will-change: border-color, background, box-shadow;
+  will-change: auto;
 }
 .card-premium:hover {
   border-color: rgba(59,130,246,0.2);
