@@ -36,7 +36,7 @@ export async function authFetch(url, options = {}) {
   const fetchUrl = url.startsWith('/api/') ? `${API_URL}${url}` : url;
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const timeout = setTimeout(() => controller.abort(), 15000);
     const res = await fetch(fetchUrl, { ...options, headers, signal: controller.signal });
     clearTimeout(timeout);
     return res;
@@ -50,12 +50,12 @@ export async function authFetch(url, options = {}) {
   }
 }
 
-// Check if API server is reachable (tries both direct and proxy)
+// Check if API server is reachable (tries both direct and proxy with retry)
 export async function checkAPIStatus() {
-  const check = async (url) => {
+  const check = async (url, timeoutMs = 10000) => {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
       if (res.ok) {
@@ -66,7 +66,9 @@ export async function checkAPIStatus() {
     return null;
   };
 
-  // Try direct API first, then proxy fallback
-  const result = await check(`${API_URL}/api/health`) || await check('/api/health');
+  // Try direct API first (10s timeout for Render cold start), wait 3s and retry once, then proxy fallback
+  const result = await check(`${API_URL}/api/health`)
+    || (await new Promise(r => setTimeout(r, 3000)), await check(`${API_URL}/api/health`, 10000))
+    || await check('/api/health');
   return result || { online: false };
 }
